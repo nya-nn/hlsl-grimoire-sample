@@ -19,11 +19,19 @@ struct Light
     float ptRange;          // 影響範囲
 
     // step-1 ライト構造体にスポットライト用のメンバ変数を追加
-
+    Vector3 spPosition;//位置
+    float pad3;        //パディング
+    Vector3 spColor;   //カラー
+    float spRange;     //影響範囲
+    Vector3 spDirection;//射出範囲
+    float spAngle;      //射出角度
     Vector3 eyePos;         // 視点の位置
     float pad4;
 
     Vector3 ambientLight;   // アンビエントライト
+
+    //演習
+    float mirror=10.0f;
 };
 //////////////////////////////////////
 //関数宣言
@@ -57,7 +65,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     // アンビエントライトを初期化する
     InitAmbientLight(light);
 
+
     // step-2 スポットライトのデータを初期化する
+    light.spPosition.x = 0.0f;
+    light.spPosition.y = 50.0f;
+    light.spPosition.z = 0.0f;
+
+    light.spColor.x = 10.0f;
+    light.spColor.y = 10.0f;
+    light.spColor.z = 10.0f;
+
+    light.spDirection.x = 1.0f;
+    light.spDirection.y = -1.0f;
+    light.spDirection.z = 1.0f;
+
+    light.spDirection.Normalize();
+
+    light.spRange = 300.0f;
+    light.spAngle = Math::DegToRad(25.0f);
+
+    bool judge = true;
+    float frame=1.0f;
 
     // モデルを初期化する
     // モデルを初期化するための情報を構築する
@@ -79,12 +107,57 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
         //////////////////////////////////////
 
         // step-3 コントローラー左スティックでスポットライトを移動させる
-
+        light.spPosition.x -= g_pad[0]->GetLStickXF();
+        if (g_pad[0]->IsPress(enButtonB)) {
+            light.spPosition.y += g_pad[0]->GetLStickYF();
+        }
+        else {
+            light.spPosition.z -= g_pad[0]->GetLStickYF();
+        }
+        
         // step-4 コントローラー右スティックでスポットライトを回転させる
-		
+        Quaternion qRotY;
+        qRotY.SetRotationY(g_pad[0]->GetRStickXF() * 0.01f);
+        qRotY.Apply(light.spDirection);
+        
+        Vector3 rotAxis;
+        rotAxis.Cross(g_vec3AxisY, light.spDirection);
+        Quaternion qRotX;
+        qRotX.SetRotation(rotAxis, g_pad[0]->GetRStickYF() * 0.01f);
+
+        qRotX.Apply(light.spDirection);
+
+        Quaternion qRot;
+        qRot.SetRotation({ 0.0f,0.0f,-1.0f }, light.spDirection);
+
+        lightModel.UpdateWorldMatrix(light.spPosition, qRot, g_vec3One);
         // 背景モデルをドロー
         bgModel.Draw(renderContext);
 
+        //演習
+        frame++;
+        Quaternion teapotQ;
+        teapotQ.SetRotationY((float)frame / 64);
+        teapotModel.UpdateWorldMatrix(
+            { (float)sin((double)frame / 1000) * 100,20.0f,0.0f },
+            teapotQ,
+            g_vec3One * (float)pow(sin((double)frame / 200), 2)
+        );
+
+        teapotModel.Draw(renderContext);
+        
+        if (judge) {
+            light.mirror-=0.1f;
+            if (light.mirror <= 1) {
+                judge = false;
+            }
+        }
+        else if (judge == false) {
+            light.mirror+=0.1f;
+            if (light.mirror >= 50) {
+                judge = true;
+            }
+        }
         // スポットライトモデルをドロー
         lightModel.Draw(renderContext);
 
@@ -135,7 +208,7 @@ void InitModel(Model& bgModel, Model& teapotModel, Model& lightModel, Light& lig
     teapotModel.Init(teapotModelInitData);
 
     teapotModel.UpdateWorldMatrix(
-        { 0.0f, 20.0f, 0.0f },
+        { 70.0f, 10.0f, 50.0f },
         g_quatIdentity,
         g_vec3One
     );

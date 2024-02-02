@@ -13,7 +13,10 @@ struct Light
     float pad1;
 
     // step-1 ライト構造体にポイントライト用のメンバ変数を追加する
-
+    Vector3 ptPosition;//位置
+    float pad2;        //パディング
+    Vector3 ptColor;   //カラー
+    float ptRange;     //影響範囲
     Vector3 eyePos;         // 視点の位置
     float pad3;
     Vector3 ambientLight;   // アンビエントライト
@@ -23,6 +26,7 @@ struct Light
 // 関数宣言
 //////////////////////////////////////
 void InitModel(Model& bgModel, Model& teapotModel, Model& lightModel, Light& light);
+void ColorChenge(Light light);
 
 ///////////////////////////////////////////////////////////////////
 // ウィンドウプログラムのメイン関数
@@ -63,16 +67,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     light.ambientLight.z = 0.3f;
 
     // step-2 ポイントライトの初期座標を設定する
-
+    light.ptPosition.x = 0.0f;
+    light.ptPosition.y = 50.0f;
+    light.ptPosition.z = 50.0f;
     // step-3 ポイントライトの初期カラーを設定する
 
+    light.ptColor.x = 15.0f;
+    light.ptColor.y = 0.0f;
+    light.ptColor.z = 0.0f;
     // step-4 ポイントライトの影響範囲を設定する
-
+    light.ptRange = 100.0f;
     // モデルを初期化する
     // モデルを初期化するための情報を構築する
     Model lightModel, bgModel, teapotModel;
     InitModel(bgModel, teapotModel, lightModel , light);
-
+    float oldColorX=256.0f;
+    float oldColorY= 256.0f;
+    float oldColorZ= 256.0f;
+    float dirColor = 1.0f;
+    bool judgeX=true;
+    bool judgeY = false;
+    bool judgeZ = false;
     //////////////////////////////////////
     // 初期化を行うコードを書くのはここまで！！！
     //////////////////////////////////////
@@ -89,6 +104,65 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
         // step-5 コントローラーでポイントライトを動かす
         
+        light.ptPosition.x -= g_pad[0]->GetLStickXF();
+        if (g_pad[0]->IsPress(enButtonB)) {
+            light.ptPosition.y += g_pad[0]->GetLStickYF();
+        }
+        else {
+            light.ptPosition.z -= g_pad[0]->GetLStickYF();
+        }
+        //演習５
+        //ポイントライトの色
+        if (judgeX) {
+            if (light.ptColor.x < 255) {
+                light.ptColor.x++;
+                if (light.ptColor.x >= 255) {
+                    judgeX = false;
+                    judgeY = true;
+                }
+            }
+            else if (light.ptColor.x >= 255) {
+                light.ptColor.x--;
+                if (light.ptColor.x <= 0) {
+                    judgeX = false;
+                    judgeY = true;
+                }
+            }
+        }
+        if (judgeY) {
+            if (light.ptColor.y < 255) {
+                light.ptColor.y++;
+                if (light.ptColor.y >= 255) {
+                    judgeY = false;
+                    judgeZ = true;
+                }
+            }
+            else if (light.ptColor.y >= 255) {
+                light.ptColor.y--;
+                if (light.ptColor.y <= 0) {
+                    judgeY = false;
+                    judgeZ = true;
+                }
+            }
+        }
+        if (judgeZ) {
+            if (light.ptColor.z < 255) {
+                light.ptColor.z++;
+                if (light.ptColor.z >= 255) {
+                    judgeZ = false;
+                    judgeX = true;
+                }
+            }
+            else if (light.ptColor.y >= 255) {
+                light.ptColor.y--;
+                if (light.ptColor.y <= 0) {
+                    judgeZ = false;
+                    judgeX = true;
+                }
+            }
+        }
+        //電球モデルのワールド行列を更新する
+        lightModel.UpdateWorldMatrix(light.ptPosition, g_quatIdentity, g_vec3One);
         // 背景モデルをドロー
         bgModel.Draw(renderContext);
 
@@ -160,4 +234,16 @@ void InitModel(Model& bgModel, Model& teapotModel, Model& lightModel, Light& lig
 
     // 初期化情報を使ってモデルを初期化する
     lightModel.Init(lightModelInitData);
+}
+void ColorChenge(Light light) 
+{
+    for (int i = 0; i < 256; i++) {
+        light.ptColor.x = (float)i;
+        for (int i = 0; i < 256; i++) {
+            light.ptColor.y = (float)i;
+            for (int i = 0; i < 256; i++) {
+                light.ptColor.z = (float)i;
+            }
+        }
+    }
 }
